@@ -1,0 +1,1345 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="referrer" content="no-referrer">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>黑金弹幕</title>
+    <style>
+:root {
+    --金: #b6a893;
+    --金亮: #e4c27a;
+    --黑: #2b2b2b;
+    --黑深: #1c1a17;
+    --字: #e9e2d6;
+    --字弱: rgba(233, 226, 214, .62);
+    --字淡: rgba(233, 226, 214, .38);
+    --线: rgba(182, 168, 147, .2);
+}
+
+* {
+    box-sizing: border-box;
+}
+
+html,
+body {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    overflow: hidden;
+    background: transparent;
+}
+
+body {
+    color: var(--字);
+    font-family: "荆南波波黑", "优设标题圆", "微软雅黑", sans-serif;
+    -webkit-font-smoothing: antialiased;
+    user-select: none;
+}
+
+/* 消息从顶部开始排列，超出后自动滚动到底部 */
+.弹幕列表 {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    width: 100%;
+    height: 100%;
+    padding: 10px;
+    overflow-x: hidden;
+    overflow-y: auto;
+    scrollbar-width: none;
+    pointer-events: none;
+}
+
+.弹幕列表::-webkit-scrollbar {
+    display: none;
+}
+
+.消息 {
+    position: relative;
+    display: flex;
+    flex: 0 0 auto;
+    gap: 9px;
+    padding: 8px 10px;
+    border: 1px solid var(--线);
+    border-radius: 10px;
+    background:
+        linear-gradient(135deg, rgba(43, 43, 43, .97), rgba(31, 30, 27, .97));
+    box-shadow:
+        0 4px 12px rgba(0, 0, 0, .3),
+        inset 0 0 0 1px rgba(0, 0, 0, .25);
+    opacity: 0;
+    transform: translateY(10px);
+    transition:
+        opacity .24s ease,
+        transform .24s ease,
+        border-color .2s ease;
+}
+
+.消息::before {
+    content: "";
+    position: absolute;
+    top: 11px;
+    bottom: 11px;
+    left: 0;
+    width: 2px;
+    border-radius: 2px;
+    background: linear-gradient(var(--金), rgba(182, 168, 147, .08));
+    opacity: .55;
+}
+
+.消息.出现 {
+    opacity: 1;
+    transform: none;
+}
+
+.消息.离开 {
+    opacity: 0;
+    transform: translateX(12px);
+}
+
+/* ---------------- 头像 ---------------- */
+.头像框 {
+    position: relative;
+    flex: 0 0 34px;
+    width: 34px;
+    height: 34px;
+    overflow: hidden;
+    border: 1px solid rgba(182, 168, 147, .42);
+    border-radius: 50%;
+    background: var(--金);
+}
+
+.头像默认 {
+    position: absolute;
+    inset: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: #241e16;
+    font-size: 14px;
+    font-weight: 700;
+}
+
+.头像 {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    object-fit: cover;
+    opacity: 0;
+    transition: opacity .2s ease;
+}
+
+.头像.加载 {
+    opacity: 1;
+}
+
+/* ---------------- 主体 ---------------- */
+.消息主体 {
+    flex: 1;
+    min-width: 0;
+}
+
+.消息头 {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 5px;
+    min-height: 16px;
+}
+
+.用户名 {
+    max-width: 130px;
+    overflow: hidden;
+    color: var(--金亮);
+    font-size: 13px;
+    font-weight: 700;
+    line-height: 1.2;
+    white-space: nowrap;
+    text-overflow: ellipsis;
+}
+
+.时间 {
+    margin-left: auto;
+    color: var(--字淡);
+    font-size: 10px;
+    line-height: 1;
+    font-variant-numeric: tabular-nums;
+    white-space: nowrap;
+}
+
+.价格 {
+    margin-left: auto;
+    color: var(--金亮);
+    font-size: 16px;
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+}
+
+.价格 + .时间 {
+    margin-left: 6px;
+}
+
+/* ---------------- 徽章 ---------------- */
+.徽章 {
+    display: inline-flex;
+    flex: 0 0 auto;
+    align-items: center;
+    height: 16px;
+    padding: 0 5px;
+    border-radius: 3px;
+    font-size: 9px;
+    line-height: 1;
+    letter-spacing: .02em;
+    white-space: nowrap;
+}
+
+.徽章.舰队 {
+    color: #241e16;
+    background: linear-gradient(135deg, var(--金亮), var(--金));
+}
+
+.徽章.勋章 {
+    color: rgba(233, 226, 214, .72);
+    border: 1px solid rgba(182, 168, 147, .32);
+    background: rgba(0, 0, 0, .16);
+}
+
+.徽章.房管 {
+    color: var(--金);
+    border: 1px solid rgba(182, 168, 147, .5);
+}
+
+.徽章.主播 {
+    color: #241e16;
+    background: var(--金);
+    font-weight: 700;
+}
+
+.徽章.舰队成员 {
+    color: var(--金);
+    border: 1px solid rgba(182, 168, 147, .3);
+}
+
+.徽章.跨房 {
+    color: var(--字淡);
+    border: 1px dashed rgba(182, 168, 147, .3);
+}
+
+/* ---------------- 内容 ---------------- */
+.消息内容 {
+    margin-top: 3px;
+    color: var(--字);
+    font-size: 14px;
+    line-height: 1.55;
+    overflow-wrap: anywhere;
+    word-break: break-word;
+    white-space: pre-wrap;
+}
+
+.表情 {
+    display: inline-block;
+    width: auto;
+    max-width: 100%;
+    height: 28px;
+    margin: 0 2px;
+    vertical-align: -6px;
+}
+
+.表情.大表情 {
+    height: 58px;
+    vertical-align: middle;
+}
+
+.翻译 {
+    margin-top: 5px;
+    padding-left: 7px;
+    border-left: 2px solid rgba(182, 168, 147, .4);
+    color: var(--字弱);
+    font-size: 12px;
+    line-height: 1.5;
+}
+
+.翻译:empty {
+    display: none;
+}
+
+/* ---------------- 礼物 / 上舰 ---------------- */
+.消息.礼物 {
+    border-color: rgba(228, 194, 122, .32);
+}
+
+.消息.上舰 {
+    border-color: rgba(228, 194, 122, .5);
+    background:
+        linear-gradient(135deg, rgba(70, 58, 37, .97), rgba(38, 34, 28, .97));
+}
+
+.礼物行 {
+    display: flex;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 7px;
+    margin-top: 5px;
+    font-size: 13px;
+    line-height: 1.4;
+}
+
+.礼物图标 {
+    width: 30px;
+    height: 30px;
+    border-radius: 6px;
+    background: rgba(0, 0, 0, .18);
+    object-fit: contain;
+}
+
+.礼物名,
+.上舰等级 {
+    color: var(--金亮);
+    font-weight: 700;
+}
+
+.礼物数量 {
+    color: var(--金);
+}
+
+.礼物价格 {
+    margin-left: auto;
+    color: var(--金亮);
+    font-weight: 700;
+}
+
+/* ---------------- 醒目留言 ---------------- */
+.消息.醒目留言 {
+    border-color: rgba(228, 194, 122, .8);
+    background:
+        linear-gradient(135deg, #e0cba5 0%, #b6a893 62%, #9d8f7b 100%);
+    color: #241e16;
+    box-shadow:
+        0 6px 20px rgba(0, 0, 0, .38),
+        inset 0 0 0 1px rgba(255, 255, 255, .16);
+}
+
+.消息.醒目留言::before {
+    display: none;
+}
+
+.醒目留言 .用户名 {
+    max-width: 120px;
+    color: #201a12;
+}
+
+.醒目留言 .时间 {
+    color: rgba(36, 30, 22, .55);
+}
+
+.醒目留言 .价格 {
+    color: #201a12;
+    font-size: 18px;
+}
+
+.醒目留言 .徽章.勋章 {
+    color: rgba(36, 30, 22, .72);
+    border-color: rgba(36, 30, 22, .25);
+    background: rgba(255, 255, 255, .12);
+}
+
+.醒目留言 .徽章.主播,
+.醒目留言 .徽章.舰队 {
+    color: var(--金亮);
+    background: #241e16;
+}
+
+.醒目留言 .消息内容 {
+    color: #241e16;
+    font-weight: 600;
+}
+
+.醒目留言 .翻译 {
+    color: rgba(36, 30, 22, .68);
+    border-left-color: rgba(36, 30, 22, .32);
+}
+
+.醒目留言 .头像框 {
+    border-color: rgba(36, 30, 22, .35);
+}
+
+/* ---------------- 提示 ---------------- */
+.提示 {
+    margin: auto;
+    color: var(--字淡);
+    font-size: 12px;
+    letter-spacing: .18em;
+    text-align: center;
+}
+
+</style>
+</head>
+
+<body>
+    <main id="弹幕列表" class="弹幕列表" aria-live="polite"></main>
+
+    <script>
+/** @module blcsdk */
+
+(function(root, factory) {
+  if (typeof define === 'function' && define.amd) {
+    define([], factory)
+  } else {
+    root.blcsdk = factory()
+  }
+}(typeof self !== 'undefined' ? self : this, function() {
+  const exports = {}
+
+  const VERSION = '1.0.3'
+  /**
+   * 取SDK版本
+   * @returns {string} "1.0.0"
+   */
+  function getVersion() {
+    return VERSION
+  }
+  exports.getVersion = getVersion
+
+  // 初始化消息的Promise {promise, resolve, reject}
+  let initPromise = null
+  // 初始化消息，包含版本、配置等信息
+  let initMsg = null
+
+  /**
+   * 消息处理器
+   * @type {MsgHandler}
+   */
+  let msgHandler = null
+  /**
+   * 用户设置的消息处理器
+   * @type {MsgHandler}
+   */
+  let rawMsgHandler = null
+
+  /**
+   * @typedef InitOptions
+   * @property {boolean} noMsgDelay 去掉消息延迟，但会导致消息不平滑
+   * @property {boolean} noCssInjection 不注入OBS的自定义CSS和blivechat服务器预设CSS
+   */
+
+  let initOptions = {
+    noCssInjection: false,
+  }
+
+  /**
+   * 初始化SDK
+   * 
+   * 在调用除了{@link setMsgHandler}以外的其他接口之前必须先调用这个
+   */
+  async function init(
+    /** @type {?InitOptions} */
+    {noMsgDelay = false, noCssInjection = false} = {}
+  ) {
+    if (initPromise) {
+      throw new Error('Cannot call init() again')
+    }
+    // initPromise = Promise.withResolvers()
+    initPromise = {}
+    initPromise.promise = new Promise((resolve, reject) => {
+      initPromise.resolve = resolve
+      initPromise.reject = reject
+    })
+
+    if (window.parent === window) {
+      initPromise.reject(new Error('No parent window'))
+      return initPromise.promise
+    }
+
+    initOptions.noCssInjection = noCssInjection
+
+    msgHandler = noMsgDelay ? new SdkMsgHandler() : new SmoothedSdkMsgHandler()
+    window.addEventListener('message', onWindowMessage)
+
+    // 连接blivechat
+    blcSendMsg('blcTemplateConnect')
+    setTimeout(() => initPromise.reject(new Error('Timed out waiting for blcInit message')), 10 * 1000)
+
+    // 等待初始化消息
+    initMsg = await initPromise.promise
+    console.debug('blcsdk initialized, initMsg=', initMsg)
+  }
+  exports.init = init
+
+  /**
+   * 设置消息处理器
+   * @param {?MsgHandler} handler 消息处理器
+   */
+  function setMsgHandler(handler) {
+    rawMsgHandler = handler
+  }
+  exports.setMsgHandler = setMsgHandler
+
+  /**
+   * 取blivechat前端版本
+   * @returns {string} "v1.10.0-dev"
+   */
+  function getBlcVersion() {
+    if (!initMsg) {
+      throw new Error('Please call init() first')
+    }
+    return initMsg.blcVersion
+  }
+  exports.getBlcVersion = getBlcVersion
+
+  /**
+   * 取blivechat前端用的SDK版本。是父窗口用的版本，不是这个包的{@link getVersion}返回值
+   * @returns {string} "1.0.0"
+   */
+  function getBlcSdkVersion() {
+    if (!initMsg) {
+      throw new Error('Please call init() first')
+    }
+    return initMsg.sdkVersion
+  }
+  exports.getBlcSdkVersion = getBlcSdkVersion
+
+  /**
+   * @typedef Config
+   * @property {boolean} showGiftName 显示礼物名
+   * @property {boolean} mergeSimilarDanmaku 合并相似弹幕
+   * @property {boolean} mergeGift 合并礼物
+   * @property {number} maxNumber 最大弹幕数
+   */
+
+  /**
+   * 取blivechat前端房间部分配置
+   * @returns {Config}
+   */
+  function getConfig() {
+    if (!initMsg) {
+      throw new Error('Please call init() first')
+    }
+    return Object.freeze(initMsg.config)
+  }
+  exports.getConfig = getConfig
+
+  function blcSendMsg(type, data = null) {
+    if (window.parent === window) {
+      return
+    }
+    let msg = { type, data }
+    window.parent.postMessage(msg, '*')
+  }
+
+  function onWindowMessage(event) {
+    if (event.source !== window.parent) {
+      return
+    }
+
+    let { type, data } = event.data
+    switch (type) {
+    case 'blcAddMsg':
+      msgHandler.addMsg(data)
+      break
+    case 'blcUpdateMsg':
+      msgHandler.updateMsg(data.id, data.newValuesObj)
+      break
+    case 'blcDelMsgs':
+      msgHandler.delMsgs(data.ids)
+      break
+
+    case 'blcInit':
+      initPromise.resolve(data)
+      break
+    case 'blcInjectCss':
+      injectCss(data)
+      break
+    }
+  }
+
+  function injectCss({injectCssUrls = [], injectCss = ''}) {
+    if (initOptions.noCssInjection) {
+      return
+    }
+
+    for (let url of injectCssUrls) {
+      let el = document.createElement('link')
+      el.rel = 'stylesheet'
+      el.href = url
+      document.head.appendChild(el)
+    }
+
+    if (injectCss !== '') {
+      let el = document.createElement('style')
+      el.textContent = injectCss
+      document.head.appendChild(el)
+    }
+  }
+
+  /** 模板消息处理器接口 */
+  class MsgHandler {
+    /**
+     * 添加消息
+     * @param {AnyDisplayMsg} msg
+     */
+    addMsg(msg) {}
+
+    /**
+     * 删除消息，主要用于撤回醒目留言
+     * @param {string[]} ids 要删除的消息ID
+     */
+    delMsgs(ids) {}
+
+    /**
+     * 更新消息字段，主要用于更新翻译结果
+     * @param {string} id 要更新的消息ID
+     * @param {Object} newValuesObj 字段和对应的新值
+     */
+    updateMsg(id, newValuesObj) {}
+  }
+  exports.MsgHandler = MsgHandler
+
+  class SdkMsgHandler extends MsgHandler {
+    addMsg(msg) { this._callRawHandler('addMsg', msg) }
+    delMsgs(ids) { this._callRawHandler('delMsgs', ids) }
+    updateMsg(id, newValuesObj) { this._callRawHandler('updateMsg', id, newValuesObj) }
+    _callRawHandler(...args) { doCallRawHandler(...args) }
+  }
+
+  function doCallRawHandler(funcName, ...args) {
+    if (!rawMsgHandler) {
+      return
+    }
+    try {
+      let func = rawMsgHandler[funcName]
+      return func.call(rawMsgHandler, ...args)
+    } catch (e) {
+      console.error(e)
+    }
+  }
+
+  // 用来统计进队列时间间隔
+  const ENQUEUE_INTERVALS_MAX_TIME_RANGE = 3000
+  const ENQUEUE_INTERVALS_MAX_LENGTH = 10
+  // 发送消息时间间隔范围
+  const MSG_MIN_INTERVAL = 80
+  const MSG_MAX_INTERVAL = 1000
+
+  class SmoothedSdkMsgHandler extends SdkMsgHandler {
+    constructor() {
+      super()
+      // 消息队列
+      this._queue = []
+      // 消费消息队列的定时器ID
+      this._emitSmoothedMsgTimerId = null
+      // 最近进队列的时间间隔，用来估计下次进队列的时间
+      this._enqueueIntervals = []
+      // 上次进队列的时间
+      this._lastEnqueueTime = null
+      // 估计的下次进队列时间间隔
+      this._estimatedEnqueueInterval = null
+
+      this._boundEmitSmoothedMsgs = this._emitSmoothedMsgs.bind(this)
+    }
+
+    _callRawHandler(funcName, ...args) {
+      let msg = {funcName, args}
+      this._enqueueMsg(msg)
+    }
+
+    _enqueueMsg(msg) {
+      // 估计进队列时间间隔
+      if (!this._lastEnqueueTime) {
+        this._lastEnqueueTime = new Date()
+      } else {
+        let curTime = new Date()
+        let interval = curTime - this._lastEnqueueTime
+        this._enqueueIntervals.push(interval)
+
+        // 统计最近ENQUEUE_INTERVALS_MAX_TIME_RANGE内的间隔，最多ENQUEUE_INTERVALS_MAX_LENGTH个
+        let keepFrom = this._enqueueIntervals.length - 1
+        let minKeepFrom = Math.max(this._enqueueIntervals.length - ENQUEUE_INTERVALS_MAX_LENGTH, 0)
+        let prevIdxPassedTime = 0
+        for (; keepFrom > minKeepFrom; keepFrom--) {
+          let itInterval = this._enqueueIntervals[keepFrom]
+          prevIdxPassedTime += itInterval
+          if (prevIdxPassedTime > ENQUEUE_INTERVALS_MAX_TIME_RANGE) {
+            break
+          }
+        }
+        if (keepFrom > 0) {
+          this._enqueueIntervals.splice(0, keepFrom)
+        }
+
+        // 这边估计得尽量大，只要不太早把消息缓冲发完就是平滑的。有MSG_MAX_INTERVAL保底，不会让消息延迟太大
+        let maxEnqueueInterval = this._enqueueIntervals[0]
+        for (let interval_ of this._enqueueIntervals) {
+          if (interval_ > maxEnqueueInterval) {
+            maxEnqueueInterval = interval_
+          }
+        }
+        this._estimatedEnqueueInterval = maxEnqueueInterval
+        this._lastEnqueueTime = curTime
+      }
+
+      this._queue.push(msg)
+
+      if (!this._emitSmoothedMsgTimerId) {
+        this._emitSmoothedMsgTimerId = setTimeout(this._boundEmitSmoothedMsgs)
+      }
+    }
+
+    _emitSmoothedMsgs() {
+      this._emitSmoothedMsgTimerId = null
+      if (this._queue.length <= 0) {
+        return
+      }
+
+      // 估计的下次进队列剩余时间
+      let estimatedNextEnqueueRemainTime = 10 * 1000
+      if (this._estimatedEnqueueInterval) {
+        estimatedNextEnqueueRemainTime = Math.max(this._lastEnqueueTime - new Date() + this._estimatedEnqueueInterval, 1)
+      }
+      // 计算发送的消息数，保证在下次进队列之前发完
+      // 下次进队列之前应该发多少条消息
+      let shouldEmitNum = Math.max(this._queue.length, 0)
+      // 下次进队列之前最多能发多少次
+      let maxCanEmitCount = estimatedNextEnqueueRemainTime / MSG_MIN_INTERVAL
+      // 这次发多少条消息
+      let numToEmit
+      if (shouldEmitNum < maxCanEmitCount) {
+        // 队列中消息数很少，每次发1条也能发完
+        numToEmit = 1
+      } else {
+        // 每次发1条以上，保证按最快速度能发完
+        numToEmit = Math.ceil(shouldEmitNum / maxCanEmitCount)
+      }
+
+      // 发消息
+      let msgs = this._queue.splice(0, numToEmit)
+      for (let msg of msgs) {
+        doCallRawHandler(msg.funcName, ...msg.args)
+      }
+
+      if (this._queue.length <= 0) {
+        return
+      }
+      // 消息没发完，计算下次发消息时间
+      let sleepTime
+      if (numToEmit === 1) {
+        // 队列中消息数很少，随便定个[MSG_MIN_INTERVAL, MSG_MAX_INTERVAL]的时间
+        sleepTime = estimatedNextEnqueueRemainTime / this._queue.length
+        sleepTime *= 0.5 + Math.random()
+        if (sleepTime > MSG_MAX_INTERVAL) {
+          sleepTime = MSG_MAX_INTERVAL
+        } else if (sleepTime < MSG_MIN_INTERVAL) {
+          sleepTime = MSG_MIN_INTERVAL
+        }
+      } else {
+        // 按最快速度发
+        sleepTime = MSG_MIN_INTERVAL
+      }
+      this._emitSmoothedMsgTimerId = setTimeout(this._boundEmitSmoothedMsgs, sleepTime)
+    }
+  }
+
+  /**
+   * 消息类型
+   * @enum {number}
+   */
+  const MsgType = Object.freeze({
+    /** 评论 @see TextMsg */
+    TEXT: 0,
+    /** 礼物 @see GiftMsg */
+    GIFT: 1,
+    /** 上舰 @see MemberMsg */
+    MEMBER: 2,
+    /** 醒目留言 @see SuperChatMsg */
+    SUPER_CHAT: 3,
+  })
+  exports.MsgType = MsgType
+
+  /**
+   * 作者类型
+   * @enum {number}
+   */
+  const AuthorType = Object.freeze({
+    NORMAL: 0,
+    /** 舰队 */
+    MEMBER: 1,
+    /** 房管 */
+    ADMIN: 2,
+    /** 主播 */
+    OWNER: 3,
+  })
+  exports.AuthorType = AuthorType
+
+  /**
+   * 舰队等级。因为历史原因，消息里的字段名叫`privilegeType`
+   * @enum {number}
+   */
+  const GuardLevel = Object.freeze({
+    NONE: 0,
+    /** 总督 */
+    LV3: 1,
+    /** 提督 */
+    LV2: 2,
+    /** 舰长 */
+    LV1: 3,
+  })
+  exports.GuardLevel = GuardLevel
+
+  /**
+   * 一段内容的类型
+   * @enum {number}
+   */
+  const ContentPartType = Object.freeze({
+    /** 文本 */
+    TEXT: 0,
+    /** 图片 */
+    IMAGE: 1,
+  })
+  exports.ContentPartType = ContentPartType
+
+  //
+  // 以下只用于类型注解，运行时没什么用
+  //
+
+  /**
+   * 用于显示的消息
+   * @typedef {TextMsg | GiftMsg | MemberMsg | SuperChatMsg} AnyDisplayMsg
+   */
+
+  /**
+   * 评论消息。因为历史原因叫TextMsg，实际上会包含表情图片
+   * @typedef TextMsg
+   * @property {string} id 消息ID
+   * @property {MsgType} type 消息类型
+   * @property {string} avatarUrl 用户头像URL
+   * @property {Date} time 时间
+   * @property {string} authorName 用户名
+   * @property {AuthorType} authorType 用户类型
+   * @property {string} content 纯文本表示的内容
+   * @property {AnyContentPart[]} contentParts 解析后的内容，包括文本、图片
+   * @property {GuardLevel} privilegeType 舰队等级
+   * @property {string} translation 内容的翻译，刚添加时一般是空的，之后通过更新消息赋值
+   * @property {string} uid 用户Open ID或ID，使用房间ID连接时不保证是唯一的
+   * @property {number} medalLevel 勋章等级，如果没戴当前房间勋章则为0
+   * @property {string} medalName 勋章名，如果没戴当前房间勋章则为空字符串
+   * @property {?boolean} isMirror 是否跨房弹幕，v1.10.2添加
+   */
+  exports.TextMsg = /** @type {TextMsg} */ (undefined)
+
+  /**
+   * 一段内容
+   * @typedef {TextContentPart | ImageContentPart} AnyContentPart
+   */
+  /**
+
+  * 一段文本内容
+   * @typedef TextContentPart
+   * @property {ContentPartType} type 内容类型
+   * @property {string} text 内容
+   */
+
+  /**
+   * 一段图片内容
+   * @typedef ImageContentPart
+   * @property {ContentPartType} type 内容类型
+   * @property {string} text 纯文本表示的内容
+   * @property {string} url 图片URL
+   * @property {number} width 宽度，加载失败则为0
+   * @property {number} height 高度，加载失败则为0
+   */
+
+  /**
+   * 礼物消息
+   * @typedef GiftMsg
+   * @property {string} id 消息ID
+   * @property {MsgType} type 消息类型
+   * @property {string} avatarUrl 用户头像URL
+   * @property {Date} time 时间
+   * @property {string} authorName 用户名
+   * @property {string} authorNamePronunciation 用户名读音
+   * @property {number} price 总价（元），免费礼物则为0
+   * @property {string} giftName 礼物名
+   * @property {number} num 数量
+   * @property {number} totalFreeCoin 免费礼物总价（银瓜子数），付费礼物则为0
+   * @property {number} giftId 礼物ID
+   * @property {string} giftIconUrl 礼物图标URL
+   * @property {string} uid 用户Open ID或ID，使用房间ID连接时不保证是唯一的
+   * @property {GuardLevel} privilegeType 舰队等级
+   * @property {number} medalLevel 勋章等级，如果没戴当前房间勋章则为0
+   * @property {string} medalName 勋章名，如果没戴当前房间勋章则为空字符串
+   */
+  exports.GiftMsg = /** @type {GiftMsg} */ (undefined)
+
+  /**
+   * 上舰消息
+   * @typedef MemberMsg
+   * @property {string} id 消息ID
+   * @property {MsgType} type 消息类型
+   * @property {string} avatarUrl 用户头像URL
+   * @property {Date} time 时间
+   * @property {string} authorName 用户名
+   * @property {string} authorNamePronunciation 用户名读音
+   * @property {GuardLevel} privilegeType 舰队等级
+   * @property {number} num 数量
+   * @property {string} unit 单位（"月"）
+   * @property {number} price 总价（元）
+   * @property {string} uid 用户Open ID或ID，使用房间ID连接时不保证是唯一的
+   * @property {number} medalLevel 勋章等级，如果没戴当前房间勋章则为0
+   * @property {string} medalName 勋章名，如果没戴当前房间勋章则为空字符串
+   */
+  exports.MemberMsg = /** @type {MemberMsg} */ (undefined)
+
+  /**
+   * 醒目留言消息
+   * @typedef SuperChatMsg
+   * @property {string} id 消息ID
+   * @property {MsgType} type 消息类型
+   * @property {string} avatarUrl 用户头像URL
+   * @property {Date} time 时间
+   * @property {string} authorName 用户名
+   * @property {string} authorNamePronunciation 用户名读音
+   * @property {number} price 价格（元）
+   * @property {string} content 内容
+   * @property {string} translation 内容的翻译，刚添加时一般是空的，之后通过更新消息赋值
+   * @property {string} uid 用户Open ID或ID，使用房间ID连接时不保证是唯一的
+   * @property {GuardLevel} privilegeType 舰队等级
+   * @property {number} medalLevel 勋章等级，如果没戴当前房间勋章则为0
+   * @property {string} medalName 勋章名，如果没戴当前房间勋章则为空字符串
+   */
+  exports.SuperChatMsg = /** @type {SuperChatMsg} */ (undefined)
+
+  return exports
+}))
+
+</script>
+    <script>
+(function () {
+    'use strict';
+
+    const 列表 = document.getElementById('弹幕列表');
+    const 消息表 = new Map();
+    const 类型 = (blcsdk && blcsdk.MsgType) || { TEXT: 0, GIFT: 1, MEMBER: 2, SUPER_CHAT: 3 };
+    const 图片类型 = (blcsdk && blcsdk.ContentPartType) ? blcsdk.ContentPartType.IMAGE : 1;
+    const 舰队名称 = { 1: '总督', 2: '提督', 3: '舰长' };
+
+    let 最大数量 = 60;
+    let 提示元素 = null;
+    let 滚动帧 = null;
+    let 演示定时器 = null;
+
+    function 元素(标签, 类名, 文本) {
+        const el = document.createElement(标签);
+        if (类名) el.className = 类名;
+        if (文本 !== undefined) el.textContent = 文本;
+        return el;
+    }
+
+    function 金额(数值) {
+        const 数 = Number(数值) || 0;
+        return Number.isInteger(数) ? String(数) : 数.toFixed(2);
+    }
+
+    function 添加徽章(头部, 文本, 类名) {
+        const 徽章 = 元素('span', '徽章 ' + (类名 || ''), 文本);
+        头部.appendChild(徽章);
+    }
+
+    function 创建头像(msg) {
+        const 框 = 元素('span', '头像框');
+        框.appendChild(元素('span', '头像默认', (msg.authorName || '?').slice(0, 1)));
+
+        if (msg.avatarUrl) {
+            const 图片 = 元素('img', '头像');
+            图片.alt = '';
+            图片.referrerPolicy = 'no-referrer';
+            图片.addEventListener('load', () => 图片.classList.add('加载'));
+            图片.addEventListener('error', () => 图片.remove());
+            图片.src = msg.avatarUrl;
+            框.appendChild(图片);
+        }
+
+        return 框;
+    }
+
+    function 添加时间(头部, msg) {
+        const 日期 = new Date(msg.time);
+        if (isNaN(日期.getTime())) return;
+
+        const 时 = String(日期.getHours()).padStart(2, '0');
+        const 分 = String(日期.getMinutes()).padStart(2, '0');
+        头部.appendChild(元素('span', '时间', 时 + ':' + 分));
+    }
+
+    function 创建骨架(msg, 类名) {
+        const 消息 = 元素('article', '消息 ' + 类名);
+        消息.dataset.id = msg.id;
+
+        const 头部 = 元素('div', '消息头');
+        const 用户名 = 元素('span', '用户名', msg.authorName || '匿名');
+        用户名.title = msg.authorName || '';
+        头部.appendChild(用户名);
+
+        const 舰队 = 舰队名称[msg.privilegeType];
+        if (舰队) 添加徽章(头部, 舰队, '舰队');
+
+        if (msg.medalLevel > 0 && msg.medalName) {
+            添加徽章(头部, msg.medalName + ' ' + msg.medalLevel, '勋章');
+        }
+
+        if (msg.authorType === 3) {
+            添加徽章(头部, '主播', '主播');
+        } else if (msg.authorType === 2) {
+            添加徽章(头部, '房管', '房管');
+        } else if (msg.authorType === 1 && !舰队) {
+            添加徽章(头部, '舰队', '舰队成员');
+        }
+
+        if (msg.isMirror) 添加徽章(头部, '跨房', '跨房');
+
+        添加时间(头部, msg);
+
+        const 主体 = 元素('div', '消息主体');
+        主体.appendChild(头部);
+
+        消息.appendChild(创建头像(msg));
+        消息.appendChild(主体);
+
+        return { 消息, 头部, 主体 };
+    }
+
+    function 填充内容(容器, msg) {
+        const 分段 = msg.contentParts;
+
+        if (Array.isArray(分段) && 分段.length > 0) {
+            for (const 段 of 分段) {
+                if (段.type === 图片类型 && 段.url) {
+                    const 图片 = 元素('img', '表情');
+                    if (段.height && 段.height >= 40) 图片.classList.add('大表情');
+                    图片.alt = 段.text || '';
+                    图片.referrerPolicy = 'no-referrer';
+                    图片.addEventListener('error', () => 图片.remove());
+                    图片.src = 段.url;
+                    容器.appendChild(图片);
+                } else {
+                    容器.appendChild(document.createTextNode(段.text || ''));
+                }
+            }
+        } else if (msg.content) {
+            容器.textContent = msg.content;
+        }
+    }
+
+    function 添加翻译(主体, msg) {
+        const 翻译 = 元素('div', '翻译', msg.translation || '');
+        主体.appendChild(翻译);
+    }
+
+    function 渲染文本(msg) {
+        const { 消息, 主体 } = 创建骨架(msg, '文本');
+        const 内容 = 元素('div', '消息内容');
+        填充内容(内容, msg);
+        主体.appendChild(内容);
+        添加翻译(主体, msg);
+        return 消息;
+    }
+
+    function 渲染礼物(msg) {
+        const { 消息, 主体 } = 创建骨架(msg, '礼物');
+        const 行 = 元素('div', '礼物行');
+
+        if (msg.giftIconUrl) {
+            const 图标 = 元素('img', '礼物图标');
+            图标.alt = '';
+            图标.referrerPolicy = 'no-referrer';
+            图标.addEventListener('error', () => 图标.remove());
+            图标.src = msg.giftIconUrl;
+            行.appendChild(图标);
+        }
+
+        const 文本 = 元素('span');
+        文本.appendChild(document.createTextNode('送出 '));
+        文本.appendChild(元素('b', '礼物名', msg.giftName || '礼物'));
+        文本.appendChild(元素('span', '礼物数量', ' ×' + (msg.num || 1)));
+        行.appendChild(文本);
+
+        行.appendChild(元素(
+            'span',
+            '礼物价格',
+            msg.price > 0 ? '¥' + 金额(msg.price) : '免费'
+        ));
+
+        主体.appendChild(行);
+        return 消息;
+    }
+
+    function 渲染上舰(msg) {
+        const { 消息, 主体 } = 创建骨架(msg, '上舰');
+        const 行 = 元素('div', '礼物行 上舰行');
+        const 文本 = 元素('span');
+
+        文本.appendChild(document.createTextNode('开通了 '));
+        文本.appendChild(元素('b', '上舰等级', 舰队名称[msg.privilegeType] || '舰队'));
+        文本.appendChild(document.createTextNode(' ×' + (msg.num || 1) + (msg.unit || '月')));
+        行.appendChild(文本);
+
+        if (msg.price > 0) {
+            行.appendChild(元素('span', '礼物价格', '¥' + 金额(msg.price)));
+        }
+
+        主体.appendChild(行);
+        return 消息;
+    }
+
+    function 渲染醒目留言(msg) {
+        const { 消息, 头部, 主体 } = 创建骨架(msg, '醒目留言');
+        const 价格 = 元素('span', '价格', '¥' + 金额(msg.price));
+        const 时间 = 头部.querySelector('.时间');
+
+        if (时间) 头部.insertBefore(价格, 时间);
+        else 头部.appendChild(价格);
+
+        const 内容 = 元素('div', '消息内容', msg.content || '');
+        主体.appendChild(内容);
+        添加翻译(主体, msg);
+        return 消息;
+    }
+
+    function 渲染(msg) {
+        switch (msg.type) {
+            case 类型.GIFT:
+                return 渲染礼物(msg);
+            case 类型.MEMBER:
+                return 渲染上舰(msg);
+            case 类型.SUPER_CHAT:
+                return 渲染醒目留言(msg);
+            default:
+                return 渲染文本(msg);
+        }
+    }
+
+    function 移除消息(id) {
+        const 记录 = 消息表.get(id);
+        if (!记录) return;
+
+        消息表.delete(id);
+        记录.消息.classList.add('离开');
+        setTimeout(() => 记录.消息.remove(), 240);
+    }
+
+    function 限制数量() {
+        while (消息表.size > 最大数量) {
+            const 最早 = 消息表.keys().next().value;
+            if (最早 === undefined) break;
+            移除消息(最早);
+        }
+    }
+
+    function 滚动到底() {
+        if (滚动帧) cancelAnimationFrame(滚动帧);
+        滚动帧 = requestAnimationFrame(() => {
+            滚动帧 = null;
+            列表.scrollTop = 列表.scrollHeight;
+        });
+    }
+
+    function 添加消息(msg) {
+        if (!msg) return;
+
+        if (!msg.id) msg.id = 'msg-' + Date.now() + '-' + Math.random().toString(36).slice(2, 7);
+        if (消息表.has(msg.id)) return;
+
+        if (提示元素) {
+            提示元素.remove();
+            提示元素 = null;
+        }
+
+        const 消息 = 渲染(msg);
+        消息表.set(msg.id, { 消息, 数据: msg });
+        列表.appendChild(消息);
+
+        requestAnimationFrame(() => 消息.classList.add('出现'));
+        限制数量();
+        滚动到底();
+    }
+
+    function 更新消息(id, 新值) {
+        const 记录 = 消息表.get(id);
+        if (!记录 || !新值) return;
+
+        Object.assign(记录.数据, 新值);
+
+        if (typeof 新值.translation === 'string') {
+            let 翻译 = 记录.消息.querySelector('.翻译');
+            if (!翻译) {
+                翻译 = 元素('div', '翻译');
+                记录.消息.querySelector('.消息主体').appendChild(翻译);
+            }
+            翻译.textContent = 新值.translation;
+        }
+    }
+
+    function 显示提示(文本) {
+        if (提示元素) 提示元素.remove();
+        提示元素 = 元素('div', '提示', 文本);
+        列表.appendChild(提示元素);
+    }
+
+    class 消息处理器 extends blcsdk.MsgHandler {
+        addMsg(msg) {
+            添加消息(msg);
+        }
+
+        delMsgs(ids) {
+            (ids || []).forEach(移除消息);
+        }
+
+        updateMsg(id, 新值) {
+            更新消息(id, 新值);
+        }
+    }
+
+    function 演示消息列表() {
+        const 现在 = Date.now();
+
+        return [
+            {
+                id: 'demo-1',
+                type: 类型.TEXT,
+                time: new Date(现在 - 5 * 60000),
+                authorName: '白桃奶昔茶',
+                authorType: 3,
+                avatarUrl: '',
+                content: '今晚的直播开始啦，欢迎来到直播间。',
+                contentParts: [{ type: 0, text: '今晚的直播开始啦，欢迎来到直播间。' }],
+                privilegeType: 0,
+                translation: '',
+                medalLevel: 0,
+                medalName: '',
+            },
+            {
+                id: 'demo-2',
+                type: 类型.TEXT,
+                time: new Date(现在 - 4 * 60000),
+                authorName: '星见',
+                authorType: 1,
+                avatarUrl: '',
+                content: '舰长打卡！今天也来听歌了。',
+                contentParts: [{ type: 0, text: '舰长打卡！今天也来听歌了。' }],
+                privilegeType: 3,
+                translation: 'A 舰长来打卡了。',
+                medalLevel: 12,
+                medalName: '黑金',
+            },
+            {
+                id: 'demo-3',
+                type: 类型.GIFT,
+                time: new Date(现在 - 3 * 60000),
+                authorName: '小满',
+                authorType: 0,
+                avatarUrl: '',
+                giftName: '小花花',
+                giftIconUrl: '',
+                num: 10,
+                price: 0,
+                totalFreeCoin: 100,
+                uid: 'demo',
+                privilegeType: 0,
+                medalLevel: 3,
+                medalName: '黑金',
+            },
+            {
+                id: 'demo-4',
+                type: 类型.TEXT,
+                time: new Date(现在 - 2 * 60000),
+                authorName: '路过的猫',
+                authorType: 0,
+                avatarUrl: '',
+                content: '这个黑金配色好好看，和直播间很搭。',
+                contentParts: [{ type: 0, text: '这个黑金配色好好看，和直播间很搭。' }],
+                privilegeType: 0,
+                translation: '',
+                medalLevel: 0,
+                medalName: '',
+                isMirror: true,
+            },
+            {
+                id: 'demo-5',
+                type: 类型.SUPER_CHAT,
+                time: new Date(现在 - 60000),
+                authorName: '夜航',
+                authorType: 0,
+                avatarUrl: '',
+                price: 30,
+                content: '第一次来，想听一首《夜航星》。',
+                translation: '第一次来，想听一首《夜航星》。',
+                privilegeType: 0,
+                medalLevel: 0,
+                medalName: '',
+            },
+            {
+                id: 'demo-6',
+                type: 类型.MEMBER,
+                time: new Date(现在 - 30000),
+                authorName: '南风',
+                authorType: 1,
+                avatarUrl: '',
+                privilegeType: 2,
+                num: 1,
+                unit: '月',
+                price: 1998,
+                medalLevel: 0,
+                medalName: '',
+            },
+        ];
+    }
+
+    function 启动演示() {
+        const 消息列表 = 演示消息列表();
+        let 序号 = 0;
+
+        演示定时器 = setInterval(() => {
+            if (序号 >= 消息列表.length) {
+                clearInterval(演示定时器);
+                演示定时器 = null;
+                return;
+            }
+
+            添加消息(消息列表[序号]);
+            序号++;
+        }, 900);
+    }
+
+    async function 初始化() {
+        if (window.parent === window) {
+            启动演示();
+            return;
+        }
+
+        try {
+            blcsdk.setMsgHandler(new 消息处理器());
+            await blcsdk.init();
+
+            try {
+                const 配置 = blcsdk.getConfig();
+                if (配置 && 配置.maxNumber) {
+                    最大数量 = Math.max(10, Math.min(80, 配置.maxNumber));
+                }
+            } catch (错误) {
+                console.warn('读取 blivechat 配置失败', 错误);
+            }
+        } catch (错误) {
+            console.error('blivechat 弹幕模板初始化失败', 错误);
+            显示提示('弹幕连接失败');
+        }
+    }
+
+    初始化();
+})();
+
+</script>
+</body>
+
+</html>
